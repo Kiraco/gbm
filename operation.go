@@ -1,7 +1,7 @@
 package main
 
 type Order struct {
-	Timestamp   int    `json:"timestamp`
+	Timestamp   int64    `json:"timestamp`
 	Operation   string `json:"operation"`
 	IssuerName  string `json:"IssuerName"`
 	TotalShares int    `json:"TotalShares`
