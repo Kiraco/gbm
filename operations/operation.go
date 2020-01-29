@@ -154,7 +154,7 @@ func runOrder(operation *Operation, order order, ordersPerIssuer *map[string][]o
 	}
 }
 
-func performOperation(operation *Operation, wg *sync.WaitGroup) Output {
+func PerformOperation(operation *Operation, wg *sync.WaitGroup) Output {
 	defer wg.Done()
 	output := Output{}
 	ordersPerIssuer := make(map[string][]order)
@@ -164,15 +164,4 @@ func performOperation(operation *Operation, wg *sync.WaitGroup) Output {
 	output.CurrentBalance.Cash = operation.InitialBalance.Cash
 	output.CurrentBalance.Issuers = operation.InitialBalance.Issuers
 	return output
-}
-
-func RunBatch(operations *[]Operation) []Output {
-	var outputs []Output
-	var wg sync.WaitGroup
-	for _, operation := range *operations {
-		wg.Add(1)
-		outputs = append(outputs, performOperation(&operation, &wg))
-	}
-	wg.Wait()
-	return outputs
 }
