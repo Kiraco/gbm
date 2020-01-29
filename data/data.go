@@ -6,16 +6,28 @@ import (
 	"io/ioutil"
 )
 
-func LoadData(filePath string) operations.Operation {
-	file, _ := ioutil.ReadFile(filePath)
-	operation := operations.Operation{}
-	err := json.Unmarshal(file, &operation)
-	if err != nil {
-		panic(err)
+func LoadData(filePaths []string) []operations.Operation {
+	var ops []operations.Operation
+	for _, path := range filePaths {
+		file, _ := ioutil.ReadFile(path)
+		operation := operations.Operation{}
+		err := json.Unmarshal(file, &operation)
+		if err != nil {
+			panic(err)
+		}
+		ops = append(ops, operation)
 	}
-	return operation
+	return ops
 }
 
-func PrettifyOutput(output operations.Output) ([]byte, error){
-	return json.MarshalIndent(output, "", "\t")
+func PrettifyOutput(outputs []operations.Output) []string {
+	var prettyOutputs []string
+	for _, output := range outputs {
+		data, err := json.MarshalIndent(output, "", "\t")
+		if err != nil {
+			panic(err)
+		}
+		prettyOutputs = append(prettyOutputs, string(data))
+	}
+	return prettyOutputs
 }

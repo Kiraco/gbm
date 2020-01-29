@@ -8,12 +8,9 @@ import (
 )
 
 func main() {
-	filepath := os.Args[1]
+	filepath := os.Args[1:]
 	operation := data.LoadData(filepath)
-	result := operations.PerformOperation(&operation)
-	output, error :=data.PrettifyOutput(result)
-	if error != nil {
-		panic("error, couldn't parse output. Something bad happened.")
-	}
-	fmt.Printf("%+v\n", string(output))
+	result := operations.RunBatch(&operation)
+	outputs := data.PrettifyOutput(result)
+	fmt.Printf("%+v\n", outputs)
 }

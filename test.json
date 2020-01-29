@@ -1,33 +1,43 @@
 {
   "initialBalances": {
-    "cash": 1000,
-    "issuers": [{
-      "issuerName": "GBM",
-      "totalShares": 2350,
-      "sharePrice": 32
-    },
+    "cash": 550000,
+    "issuers": [
+      {
+        "issuerName": "GBM",
+        "totalShares": 2350,
+        "sharePrice": 32
+      },
       {
         "issuerName": "ABC",
         "totalShares": 4450,
         "sharePrice": 120
-      }]
+      }
+    ]
   },
-  "orders": [{
-    "timestamp": 1580060743,
-    "operation": "BUY",
-    "IssuerName": "GBM",
-    "TotalShares": 10,
-    "SharePrice": 10
-  },
-    {
-    "timestamp": 1580060543,
-    "operation": "SELL",
-    "IssuerName": "GBM",
-    "TotalShares": 5,
-    "SharePrice": 10
-  },
+  "orders": [
     {
       "timestamp": 1580060743,
+      "operation": "BUY",
+      "IssuerName": "GBM",
+      "TotalShares": 1000,
+      "SharePrice": 10
+    },
+    {
+      "timestamp": 1580060543,
+      "operation": "SELL",
+      "IssuerName": "GBM",
+      "TotalShares": 5,
+      "SharePrice": 10
+    },
+    {
+      "timestamp": 1580060743,
+      "operation": "BUY",
+      "IssuerName": "ABC",
+      "TotalShares": 10,
+      "SharePrice": 10
+    },
+    {
+      "timestamp": 1580060753,
       "operation": "BUY",
       "IssuerName": "ABC",
       "TotalShares": 10,

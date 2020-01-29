@@ -2,6 +2,7 @@ package operations
 
 import (
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -39,6 +40,42 @@ type Output struct {
 	BusinessErrors []businessError `json:"businessErrors"`
 }
 
+func isOrderInvalid(order order) bool {
+	return order.Timestamp < 0 || order.TotalShares < 0 || order.SharePrice < 0 || len(order.IssuerName) < 0 || len(order.Operation) < 0
+}
+
+func validMarketHoursOperation(timestamp int64) bool {
+	date := time.Unix(timestamp, 0)
+	totalSeconds := date.Second() + date.Minute()*60 + date.Hour()*3600
+	return totalSeconds > 21600 && totalSeconds < 54000
+}
+
+func duplicatedOperation(currentOrder order, ordersPerIssuer **map[string][]order) bool {
+	orders, exists := (**ordersPerIssuer)[currentOrder.IssuerName]
+	if !exists {
+		(**ordersPerIssuer)[currentOrder.IssuerName] = []order{currentOrder}
+		return false
+	}
+
+	for _, order := range orders {
+		if currentOrder.TotalShares == order.TotalShares &&
+			currentOrder.SharePrice == order.SharePrice &&
+			currentOrder.Operation == order.Operation {
+			if currentOrder.Timestamp == order.Timestamp {
+				return false
+			}
+			if order.Timestamp > currentOrder.Timestamp {
+				return order.Timestamp-currentOrder.Timestamp <= 300
+			}
+			if currentOrder.Timestamp > order.Timestamp {
+				return currentOrder.Timestamp-order.Timestamp <= 300
+			}
+		}
+	}
+	(**ordersPerIssuer)[currentOrder.IssuerName] = append((**ordersPerIssuer)[currentOrder.IssuerName], currentOrder)
+	return false
+}
+
 func canSell(order order, balance balance) (can bool, cost int, shares int) {
 	for _, issuer := range balance.Issuers {
 		if issuer.IssuerName == order.IssuerName {
@@ -59,12 +96,6 @@ func canBuy(order order, balance balance) (can bool, cost int, shares int) {
 	return false, 0, 0
 }
 
-func validMarketHoursOperation(timestamp int64) bool {
-	date := time.Unix(timestamp, 0)
-	totalSeconds := date.Second() + date.Minute()*60 + date.Hour()*3600
-	return totalSeconds > 21600 && totalSeconds < 54000
-}
-
 func updateBalance(operation *Operation, operationIssuer string, cost int, shares int) {
 	operation.InitialBalance.Cash += cost
 	for i, issuer := range operation.InitialBalance.Issuers {
@@ -75,58 +106,73 @@ func updateBalance(operation *Operation, operationIssuer string, cost int, share
 	}
 }
 
-func duplicatedOperation(previousTime int64, currentTime int64) bool {
-	previous := time.Unix(previousTime, 0)
-	current := time.Unix(currentTime, 0)
-	previous.Add(time.Minute * 5)
-	return previous.Equal(current) || previous.After(current)
+func runOrder(operation *Operation, order order, ordersPerIssuer *map[string][]order, output *Output) {
+	if isOrderInvalid(order) {
+		bError := businessError{}
+		bError.ErrorType = "INVALID OPERATION"
+		bError.OrderFailed = order
+		output.BusinessErrors = append(output.BusinessErrors, bError)
+		return
+	}
+	if !validMarketHoursOperation(order.Timestamp) {
+		bError := businessError{}
+		bError.ErrorType = "CLOSED MARKET"
+		bError.OrderFailed = order
+		output.BusinessErrors = append(output.BusinessErrors, bError)
+		return
+	}
+	if duplicatedOperation(order, &ordersPerIssuer) {
+		bError := businessError{}
+		bError.ErrorType = "DUPLICATED OPERATION"
+		bError.OrderFailed = order
+		output.BusinessErrors = append(output.BusinessErrors, bError)
+		return
+	}
+	switch strings.ToUpper(order.Operation) {
+	case "BUY":
+		can, cost, shares := canBuy(order, operation.InitialBalance)
+		if can {
+			updateBalance(operation, order.IssuerName, cost, shares)
+		} else {
+			bError := businessError{}
+			bError.ErrorType = "INSUFFICIENT BALANCE"
+			bError.OrderFailed = order
+			output.BusinessErrors = append(output.BusinessErrors, bError)
+		}
+		break
+	case "SELL":
+		can, cost, shares := canSell(order, operation.InitialBalance)
+		if can {
+			updateBalance(operation, order.IssuerName, cost, shares)
+		} else {
+			bError := businessError{}
+			bError.ErrorType = "INSUFFICIENT STOCKS"
+			bError.OrderFailed = order
+			output.BusinessErrors = append(output.BusinessErrors, bError)
+		}
+		break
+	}
 }
 
-func PerformOperation(operation *Operation) Output {
+func performOperation(operation *Operation, wg *sync.WaitGroup) Output {
+	defer wg.Done()
 	output := Output{}
-
-	for i, order := range operation.Orders {
-		if !validMarketHoursOperation(order.Timestamp) {
-			bError := businessError{}
-			bError.ErrorType = "CLOSED MARKET"
-			bError.OrderFailed = order
-			output.BusinessErrors = append(output.BusinessErrors, bError)
-			continue
-		}
-		if i != 0 && duplicatedOperation(operation.Orders[i-1].Timestamp, order.Timestamp) {
-			bError := businessError{}
-			bError.ErrorType = "DUPLICATED OPERATION"
-			bError.OrderFailed = order
-			output.BusinessErrors = append(output.BusinessErrors, bError)
-			continue
-		}
-		switch strings.ToUpper(order.Operation) {
-		case "BUY":
-			can, cost, shares := canBuy(order, operation.InitialBalance)
-			if can {
-				updateBalance(operation, order.IssuerName, cost, shares)
-			} else {
-				bError := businessError{}
-				bError.ErrorType = "INSUFFICIENT BALANCE"
-				bError.OrderFailed = order
-				output.BusinessErrors = append(output.BusinessErrors, bError)
-			}
-			break
-		case "SELL":
-			can, cost, shares := canSell(order, operation.InitialBalance)
-			if can {
-				updateBalance(operation, order.IssuerName, cost, shares)
-			} else {
-				bError := businessError{}
-				bError.ErrorType = "INSUFFICIENT STOCKS"
-				bError.OrderFailed = order
-				output.BusinessErrors = append(output.BusinessErrors, bError)
-			}
-			break
-		}
+	ordersPerIssuer := make(map[string][]order)
+	for _, order := range operation.Orders {
+		runOrder(operation, order, &ordersPerIssuer, &output)
 	}
-
 	output.CurrentBalance.Cash = operation.InitialBalance.Cash
 	output.CurrentBalance.Issuers = operation.InitialBalance.Issuers
 	return output
+}
+
+func RunBatch(operations *[]Operation) []Output {
+	var outputs []Output
+	var wg sync.WaitGroup
+	for _, operation := range *operations {
+		wg.Add(1)
+		outputs = append(outputs, performOperation(&operation, &wg))
+	}
+	wg.Wait()
+	return outputs
 }
