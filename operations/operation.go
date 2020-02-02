@@ -62,7 +62,7 @@ func duplicatedOrder(currentOrder order, ordersPerIssuer **map[string][]order) b
 			currentOrder.SharePrice == order.SharePrice &&
 			currentOrder.Operation == order.Operation {
 			if currentOrder.Timestamp == order.Timestamp {
-				return false
+				return true
 			}
 			if order.Timestamp > currentOrder.Timestamp {
 				return order.Timestamp-currentOrder.Timestamp <= 300

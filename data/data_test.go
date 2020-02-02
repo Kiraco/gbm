@@ -6,7 +6,7 @@ import (
 )
 
 func TestLoadData(t *testing.T) {
-	path := []string{"/Users/donovan/Documents/Personal/Projects/go/gbm/test.json"}
+	path := []string{"/Users/donovan/Documents/Personal/Projects/go/gbm/mock-data/test.json"}
 	result, errors := LoadData(path)
 	if len(result) == 0 {
 		t.Error("There should be a set of operations from file ")
