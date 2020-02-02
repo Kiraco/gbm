@@ -41,7 +41,7 @@ type Output struct {
 }
 
 func isOrderInvalid(order order) bool {
-	return order.Timestamp < 0 || order.TotalShares < 0 || order.SharePrice < 0 || len(order.IssuerName) < 0 || len(order.Operation) < 0
+	return order.Timestamp < 0 || order.TotalShares < 0 || order.SharePrice < 0 || len(order.IssuerName) <= 0 || (order.Operation != "BUY" && order.Operation != "SELL")
 }
 
 func validMarketHoursOperation(timestamp int64) bool {
@@ -50,7 +50,7 @@ func validMarketHoursOperation(timestamp int64) bool {
 	return totalSeconds > 21600 && totalSeconds < 54000
 }
 
-func duplicatedOperation(currentOrder order, ordersPerIssuer **map[string][]order) bool {
+func duplicatedOrder(currentOrder order, ordersPerIssuer **map[string][]order) bool {
 	orders, exists := (**ordersPerIssuer)[currentOrder.IssuerName]
 	if !exists {
 		(**ordersPerIssuer)[currentOrder.IssuerName] = []order{currentOrder}
@@ -121,7 +121,7 @@ func runOrder(operation *Operation, order order, ordersPerIssuer *map[string][]o
 		output.BusinessErrors = append(output.BusinessErrors, bError)
 		return
 	}
-	if duplicatedOperation(order, &ordersPerIssuer) {
+	if duplicatedOrder(order, &ordersPerIssuer) {
 		bError := businessError{}
 		bError.ErrorType = "DUPLICATED OPERATION"
 		bError.OrderFailed = order

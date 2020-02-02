@@ -10,9 +10,9 @@ import (
 
 func main() {
 	filepath := os.Args[1:]
-	allFiles := data.LoadData(filepath)
+	allFiles, _ := data.LoadData(filepath)
 	result := RunBatch(&allFiles)
-	outputs := data.PrettifyOutput(result)
+	outputs, _ := data.PrettifyOutput(result)
 	fmt.Printf("%+v\n", outputs)
 }
 

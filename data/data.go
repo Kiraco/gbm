@@ -6,28 +6,39 @@ import (
 	"io/ioutil"
 )
 
-func LoadData(filePaths []string) []operations.Operation {
+type Error struct {
+	ErrorMessage string
+}
+
+func LoadData(filePaths []string) ([]operations.Operation, []Error) {
 	var ops []operations.Operation
+	var errors []Error
 	for _, path := range filePaths {
 		file, _ := ioutil.ReadFile(path)
 		operation := operations.Operation{}
 		err := json.Unmarshal(file, &operation)
 		if err != nil {
-			panic(err)
+			fileError := Error{}
+			fileError.ErrorMessage = err.Error()
+			errors = append(errors, fileError)
+			continue
 		}
 		ops = append(ops, operation)
 	}
-	return ops
+	return ops, errors
 }
 
-func PrettifyOutput(outputs []operations.Output) []string {
+func PrettifyOutput(outputs []operations.Output) ([]string, []Error) {
 	var prettyOutputs []string
+	var errors []Error
 	for _, output := range outputs {
 		data, err := json.MarshalIndent(output, "", "\t")
 		if err != nil {
-			panic(err)
+			marshalError := Error{}
+			marshalError.ErrorMessage = err.Error()
+			errors = append(errors, marshalError)
 		}
 		prettyOutputs = append(prettyOutputs, string(data))
 	}
-	return prettyOutputs
+	return prettyOutputs, errors
 }

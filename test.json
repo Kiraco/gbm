@@ -37,13 +37,6 @@
       "SharePrice": 10
     },
     {
-      "timestamp": 1580060753,
-      "operation": "BUY",
-      "IssuerName": "ABC",
-      "TotalShares": 10,
-      "SharePrice": 10
-    },
-    {
       "timestamp": 1580060543,
       "operation": "SELL",
       "IssuerName": "ABC",
