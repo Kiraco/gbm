@@ -6,7 +6,7 @@ import (
 )
 
 func TestRunBatch(t *testing.T) {
-	operations, _ := data.LoadData([]string{"/Users/donovan/Documents/Personal/Projects/go/gbm/mock-data/test.json"})
+	operations, _ := data.LoadData("/Users/donovan/Documents/Personal/Projects/go/gbm/mock-data/batch-json-paths.txt")
 	output := RunBatch(&operations)
 	if len(output) == 0 {
 		t.Error("There should be an output for the operation")

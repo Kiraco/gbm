@@ -1,0 +1,2 @@
+/Users/donovan/Documents/Personal/Projects/go/gbm/mock-data/test.json
+/Users/donovan/Documents/Personal/Projects/go/gbm/mock-data/test_2.json

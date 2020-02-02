@@ -25,6 +25,7 @@ type balance struct {
 	Issuers []issuer `json:"issuers"`
 }
 
+// Operation - holds the orders from a json file
 type Operation struct {
 	InitialBalance balance `json:"initialBalances"`
 	Orders         []order `json:"orders"`
@@ -35,21 +36,28 @@ type businessError struct {
 	OrderFailed order
 }
 
+// Output - Holds the result from running json file operations
 type Output struct {
 	CurrentBalance balance         `json:"currentBalance"`
 	BusinessErrors []businessError `json:"businessErrors"`
 }
 
+// isOrderInvalid - verify if the structure of the order is valid, type and not null values
 func isOrderInvalid(order order) bool {
 	return order.Timestamp < 0 || order.TotalShares < 0 || order.SharePrice < 0 || len(order.IssuerName) <= 0 || (order.Operation != "BUY" && order.Operation != "SELL")
 }
 
+// validMarketHoursOperation - check if the order is between 06:00 and 15:00 hours
 func validMarketHoursOperation(timestamp int64) bool {
 	date := time.Unix(timestamp, 0)
 	totalSeconds := date.Second() + date.Minute()*60 + date.Hour()*3600
 	return totalSeconds > 21600 && totalSeconds < 54000
 }
 
+/* duplicatedOrder - validates if an orders is duplicated. the criteria is:
+	- same issuer, shares and operation
+	- the operation is in 5 minutes difference between other operations
+*/
 func duplicatedOrder(currentOrder order, ordersPerIssuer **map[string][]order) bool {
 	orders, exists := (**ordersPerIssuer)[currentOrder.IssuerName]
 	if !exists {
@@ -76,6 +84,7 @@ func duplicatedOrder(currentOrder order, ordersPerIssuer **map[string][]order) b
 	return false
 }
 
+// canSell - validates the shares of the issuer to check amount
 func canSell(order order, balance balance) (can bool, cost int, shares int) {
 	for _, issuer := range balance.Issuers {
 		if issuer.IssuerName == order.IssuerName {
@@ -86,6 +95,7 @@ func canSell(order order, balance balance) (can bool, cost int, shares int) {
 	return false, 0, 0
 }
 
+// canBuy - validates the cash of the issuer to check amount
 func canBuy(order order, balance balance) (can bool, cost int, shares int) {
 	for _, issuer := range balance.Issuers {
 		if issuer.IssuerName == order.IssuerName {
@@ -96,6 +106,7 @@ func canBuy(order order, balance balance) (can bool, cost int, shares int) {
 	return false, 0, 0
 }
 
+// updateBalance - depending if its buy/sell update share and cash accordingly
 func updateBalance(operation *Operation, operationIssuer string, cost int, shares int) {
 	operation.InitialBalance.Cash += cost
 	for i, issuer := range operation.InitialBalance.Issuers {
@@ -106,6 +117,7 @@ func updateBalance(operation *Operation, operationIssuer string, cost int, share
 	}
 }
 
+// runOrder - store the order in a map of issuers, for duplicated validations, update balance according of the order type
 func runOrder(operation *Operation, order order, ordersPerIssuer *map[string][]order, output *Output) {
 	if isOrderInvalid(order) {
 		bError := businessError{}
@@ -154,6 +166,7 @@ func runOrder(operation *Operation, order order, ordersPerIssuer *map[string][]o
 	}
 }
 
+// PerformOperation - run all orders in a json file. Uses go routines per file for better performance
 func PerformOperation(operation *Operation, wg *sync.WaitGroup) Output {
 	defer wg.Done()
 	output := Output{}

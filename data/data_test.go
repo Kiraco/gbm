@@ -6,7 +6,7 @@ import (
 )
 
 func TestLoadData(t *testing.T) {
-	path := []string{"/Users/donovan/Documents/Personal/Projects/go/gbm/mock-data/test.json"}
+	path := "../mock-data/batch-json-paths.txt"
 	result, errors := LoadData(path)
 	if len(result) == 0 {
 		t.Error("There should be a set of operations from file ")
@@ -17,7 +17,19 @@ func TestLoadData(t *testing.T) {
 }
 
 func TestLoadDataIncorrectPath(t *testing.T) {
-	path := []string{"/Users/donovan/Documents/Personal/Projects/go/gbm/test"}
+	path := "../mock-data/batch-json-path"
+	result, errors := LoadData(path)
+
+	if len(result) != 0 {
+		t.Errorf("There should not be any operation")
+	}
+	if len(errors) == 0 {
+		t.Error("There should be errors recorded")
+	}
+}
+
+func TestLoadDataIncorrectFilePathInBatch(t *testing.T) {
+	path := "../mock-data/batch-json-paths-incorrect-path.txt"
 	result, errors := LoadData(path)
 
 	if len(result) != 0 {
