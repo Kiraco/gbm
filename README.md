@@ -2,6 +2,11 @@
 
 This project is a challenge from GBM, the program takes a txt file with a list of paths to json files that holds operations.
 
+# Pre - requisites
+
+- Have Go installed in the machine, for installation guide follow: `https://golang.org/doc/install`
+
+
 # Usage
 
 The program receive a path to a `.txt` file that holds all the json paths that holds the orders to be run. It will execute all json in the txt file.
